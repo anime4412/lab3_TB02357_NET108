@@ -1,334 +1,268 @@
 # BÁO CÁO THỰC HÀNH LAB 3: THIẾT KẾ MÔ HÌNH 3 LỚP & TRUY XUẤT CSDL VỚI ADO.NET
-**MÔN HỌC: DỰ ÁN .NET 1 (NET108)**  
+**MÔN HỌC: DỰ ÁN .NET 1 (NET108 / SOF1022)**  
 **LỚP: DỰ ÁN 1 — NHÓM THỰC HIỆN: NHÓM 5**  
 **MÃ SINH VIÊN: TB02357**  
-**ĐỀ TÀI: XÂY DỰNG HỆ THỐNG QUẢN LÝ QUÁN CAFE (QUANLYQUANCAFE)**  
+**ĐỀ TÀI: HỆ THỐNG QUẢN LÝ THƯ VIỆN ĐIỆN TỬ (LIBRARY MANAGEMENT SYSTEM)**  
 
 ---
 
 ## MỤC TIÊU BÀI THỰC HÀNH LAB 3
-1. **Nắm vững kỹ thuật ADO.NET**: Hiểu sâu cơ chế làm việc của các đối tượng kết nối `SqlConnection`, thực thi lệnh `SqlCommand`, bộ điều hợp dữ liệu `SqlDataAdapter`, bảng dữ liệu trong bộ nhớ `DataTable` và đối tượng tham số `SqlParameter`.
-2. **Thiết kế kiến trúc 3 lớp (3-Tier Architecture)**: Phân tách rõ ràng giữa:
-   - **DAL (Data Access Layer)**: Lớp truy xuất cơ sở dữ liệu.
-   - **Models / Entities**: Lớp biểu diễn thực thể nghiệp vụ.
-   - **Presentation Layer (Web MVC)**: Giao diện người dùng với Controllers và Views.
-3. **Xây dựng lớp tiện ích dùng chung `DBUtil`**: Tối ưu hóa việc mở/đóng kết nối, tham số hóa câu lệnh để phòng chống triệt để tấn công **SQL Injection**, bảo toàn mã Unicode tiếng Việt với kiểu dữ liệu `NVarChar`.
-4. **Xây dựng các lớp Thực thể và DAL hoàn chỉnh**: Thực thi đầy đủ 5 phương thức CRUD (`GetAll`, `GetById`, `Insert`, `Update`, `Delete`) cho các bảng dữ liệu chính trong hệ thống.
-5. **Quản lý phiên bản mã nguồn với Git**: Khởi tạo kho chứa cục bộ, thiết lập `.gitignore` chuẩn cho .NET và thực hiện commit theo dõi lịch sử phát triển.
+1. **Nắm vững kiến thức ADO.NET**: Vận dụng thành thạo các đối tượng kết nối `SqlConnection`, thực thi truy vấn `SqlCommand`, đối tượng tham số `SqlParameter`, bộ nạp dữ liệu `SqlDataAdapter` và cấu trúc bảng nhớ `DataTable`.
+2. **Thiết kế kiến trúc 3 lớp (3-Tier Architecture) cho đề tài Thư viện**:
+   - **Tầng DAL (Data Access Layer)**: Đóng gói toàn bộ logic truy vấn dữ liệu vào các lớp `BookDAL`, `CategoryDAL`, `ReaderDAL`, `BorrowSlipDAL`, `BorrowDetailDAL` kết hợp lớp tiện ích `DBUtil`.
+   - **Tầng Models (Entities)**: Ánh xạ chuẩn xác các thực thể nghiệp vụ: `Book`, `Category`, `Author`, `Publisher`, `Shelf`, `Reader`, `BorrowSlip`, `BorrowDetail`, `Fine`, `Employee`.
+   - **Tầng Presentation (Web MVC)**: Giao diện điều hướng `BookController` và hiển thị Razor View Bootstrap 5.
+3. **Xây dựng lớp tiện ích dùng chung `DBUtil`**: Tự động hóa việc ánh xạ tham số `@1, @2,...`, phòng chống 100% tấn công SQL Injection và bảo toàn chuỗi tiếng Việt Unicode với `SqlDbType.NVarChar`.
+4. **Cài đặt đầy đủ 5 chức năng CRUD**: Hoàn thiện các phương thức `GetAll()`, `GetById()`, `Insert()`, `Update()`, `Delete()` cho các bảng lõi của hệ thống thư viện.
+5. **Quản lý mã nguồn bằng Git**: Cấu hình `.gitignore`, khởi tạo Git repository và commit các mốc phát triển.
 
 ---
 
-## NỘI DUNG THỰC HIỆN LAB 3
+## NỘI DUNG THỰC HIỆN LAB 3 (THEO ĐỀ TÀI THƯ VIỆN ĐIỆN TỬ)
 
-### BÀI 1 (3 ĐIỂM): TẠO CƠ SỞ DỮ LIỆU & CÁC BẢNG DỮ LIỆU TƯƠNG ỨNG
+### BÀI 1 (3 ĐIỂM): TẠO CƠ SỞ DỮ LIỆU & CÁC BẢNG DỮ LIỆU THƯ VIỆN
 
-#### 1. Script thiết kế CSDL SQL Server (`QuanLyQuanCafe.sql`)
-Hệ thống được thiết kế bao gồm 6 bảng thực thể nghiệp vụ, chuẩn hóa quan hệ khóa chính (`PRIMARY KEY IDENTITY`) và khóa ngoại (`FOREIGN KEY REFERENCES`):
+#### 1. Cấu trúc CSDL `QuanLyThuVien` (`QuanLyThuVien.sql`)
+Hệ thống CSDL Thư viện được chuẩn hóa với các bảng:
+* `Employees`: Nhân viên, thủ thư, quản trị viên (`Id`, `EmployeeCode`, `FullName`, `Email`, `Password`, `Phone`, `Role`, `Active`).
+* `Readers`: Bạn đọc, thẻ thư viện (`Id`, `ReaderCode`, `FullName`, `Email`, `Phone`, `Address`, `IdentityNumber`, `RegisterDate`, `ExpiryDate`, `MaxBorrowLimit`, `Active`).
+* `Categories`: Danh mục / Thể loại sách (`Id`, `Name`, `Description`, `Active`).
+* `Authors`: Tác giả sách (`Id`, `Name`, `Biography`, `Active`).
+* `Publishers`: Nhà xuất bản (`Id`, `Name`, `Address`, `Phone`, `Email`, `Active`).
+* `Shelves`: Vị trí kệ sách lưu trữ (`Id`, `Name`, `Location`, `Active`).
+* `Books`: Đầu sách (`Id`, `ISBN`, `Title`, `CategoryId`, `AuthorId`, `PublisherId`, `ShelfId`, `PublishYear`, `PageCount`, `Price`, `Quantity`, `AvailableQuantity`, `CoverImage`, `Description`, `Active`).
+* `BorrowSlips`: Phiếu mượn sách (`Id`, `SlipCode`, `ReaderId`, `EmployeeId`, `BorrowDate`, `DueDate`, `ActualReturnDate`, `Status`, `DepositAmount`, `Notes`).
+* `BorrowDetails`: Chi tiết mượn từng cuốn (`Id`, `BorrowSlipId`, `BookId`, `Quantity`, `RentalPrice`, `IsReturned`, `ConditionStatus`, `FineAmount`).
+* `Fines`: Phiếu phạt vi phạm/trễ hạn (`Id`, `BorrowSlipId`, `ReaderId`, `TotalAmount`, `PaidAmount`, `Status`, `CreatedAt`, `Notes`).
 
+#### 2. Mã nguồn tạo bảng tiêu biểu (`QuanLyThuVien.sql`)
 ```sql
--- Tạo Database
-CREATE DATABASE QuanLyQuanCafe;
+CREATE DATABASE QuanLyThuVien;
 GO
-USE QuanLyQuanCafe;
+USE QuanLyThuVien;
 GO
 
--- 1. Bảng danh mục đồ uống (categories)
-CREATE TABLE categories (
-    id INT PRIMARY KEY IDENTITY(1,1),
-    name NVARCHAR(250) NOT NULL,
-    active BIT DEFAULT 1
+-- 1. Bảng Độc giả (Readers)
+CREATE TABLE Readers (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    ReaderCode VARCHAR(20) UNIQUE NOT NULL,
+    FullName NVARCHAR(150) NOT NULL,
+    Email VARCHAR(100) UNIQUE NOT NULL,
+    Password VARCHAR(255) NOT NULL,
+    Phone VARCHAR(15),
+    Address NVARCHAR(250),
+    IdentityNumber VARCHAR(20),
+    RegisterDate DATETIME DEFAULT GETDATE(),
+    ExpiryDate DATETIME NOT NULL,
+    MaxBorrowLimit INT DEFAULT 5,
+    Active BIT DEFAULT 1
 );
 
--- 2. Bảng đồ uống (drinks)
-CREATE TABLE drinks (
-    id INT PRIMARY KEY IDENTITY(1,1),
-    category_id INT FOREIGN KEY REFERENCES categories(id) ON DELETE SET NULL,
-    name NVARCHAR(250) NOT NULL,
-    price INT NOT NULL DEFAULT 0,
-    image NVARCHAR(250),
-    description NVARCHAR(MAX),
-    active BIT DEFAULT 1
+-- 2. Bảng Đầu sách (Books)
+CREATE TABLE Books (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    ISBN VARCHAR(20) UNIQUE NOT NULL,
+    Title NVARCHAR(250) NOT NULL,
+    CategoryId INT FOREIGN KEY REFERENCES Categories(Id) ON DELETE SET NULL,
+    AuthorId INT FOREIGN KEY REFERENCES Authors(Id) ON DELETE SET NULL,
+    PublisherId INT FOREIGN KEY REFERENCES Publishers(Id) ON DELETE SET NULL,
+    ShelfId INT FOREIGN KEY REFERENCES Shelves(Id) ON DELETE SET NULL,
+    PublishYear INT DEFAULT 2024,
+    PageCount INT DEFAULT 0,
+    Price DECIMAL(18,2) DEFAULT 0,
+    Quantity INT DEFAULT 1,
+    AvailableQuantity INT DEFAULT 1,
+    CoverImage NVARCHAR(255),
+    Description NVARCHAR(MAX),
+    Active BIT DEFAULT 1
 );
 
--- 3. Bảng người dùng / nhân viên (users)
-CREATE TABLE users (
-    id INT PRIMARY KEY IDENTITY(1,1),
-    email VARCHAR(100) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    full_name NVARCHAR(60) NOT NULL,
-    phone VARCHAR(10),
-    role BIT DEFAULT 0, -- 0: Nhân viên (Staff), 1: Quản lý (Admin)
-    active BIT DEFAULT 1
+-- 3. Bảng Phiếu mượn (BorrowSlips)
+CREATE TABLE BorrowSlips (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    SlipCode VARCHAR(20) UNIQUE NOT NULL,
+    ReaderId INT FOREIGN KEY REFERENCES Readers(Id) ON DELETE CASCADE,
+    EmployeeId INT FOREIGN KEY REFERENCES Employees(Id) ON DELETE SET NULL,
+    BorrowDate DATETIME DEFAULT GETDATE(),
+    DueDate DATETIME NOT NULL,
+    ActualReturnDate DATETIME NULL,
+    Status NVARCHAR(50) DEFAULT N'Borrowing',
+    DepositAmount DECIMAL(18,2) DEFAULT 0,
+    Notes NVARCHAR(500)
 );
 
--- 4. Bảng thẻ bàn / thẻ rung tự phục vụ (cards)
-CREATE TABLE cards (
-    id INT PRIMARY KEY IDENTITY(1,1),
-    code INT NOT NULL UNIQUE,
-    status BIT DEFAULT 1 -- 1: Sẵn sàng, 0: Đang phục vụ khách
-);
-
--- 5. Bảng hóa đơn (bills)
-CREATE TABLE bills (
-    id INT PRIMARY KEY IDENTITY(1,1),
-    user_id INT FOREIGN KEY REFERENCES users(id) ON DELETE SET NULL,
-    card_id INT FOREIGN KEY REFERENCES cards(id) ON DELETE SET NULL,
-    code VARCHAR(10) NOT NULL,
-    created_at DATETIME DEFAULT GETDATE(),
-    total INT DEFAULT 0,
-    status VARCHAR(10) DEFAULT 'PAID' -- PAID, PENDING, CANCEL
-);
-
--- 6. Bảng chi tiết hóa đơn (bill_details)
-CREATE TABLE bill_details (
-    id INT PRIMARY KEY IDENTITY(1,1),
-    bill_id INT FOREIGN KEY REFERENCES bills(id) ON DELETE CASCADE,
-    drink_id INT FOREIGN KEY REFERENCES drinks(id) ON DELETE NO ACTION,
-    quantity INT NOT NULL DEFAULT 1,
-    price INT NOT NULL DEFAULT 0
+-- 4. Bảng Chi tiết phiếu mượn (BorrowDetails)
+CREATE TABLE BorrowDetails (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    BorrowSlipId INT FOREIGN KEY REFERENCES BorrowSlips(Id) ON DELETE CASCADE,
+    BookId INT FOREIGN KEY REFERENCES Books(Id) ON DELETE NO ACTION,
+    Quantity INT DEFAULT 1,
+    RentalPrice DECIMAL(18,2) DEFAULT 0,
+    IsReturned BIT DEFAULT 0,
+    ReturnDate DATETIME NULL,
+    ConditionStatus NVARCHAR(100) DEFAULT N'Nguyên vẹn',
+    FineAmount DECIMAL(18,2) DEFAULT 0
 );
 GO
 ```
 
-#### 2. Thêm dữ liệu mẫu ban đầu (Seed Data)
-```sql
--- Danh mục
-INSERT INTO categories (name, active) VALUES 
-(N'Cà phê truyền thống', 1), (N'Cà phê pha máy (Espresso)', 1),
-(N'Trà trái cây & Trà sữa', 1), (N'Đá xay & Sinh tố', 1), (N'Bánh ngọt & Đồ ăn nhẹ', 1);
-
--- Đồ uống
-INSERT INTO drinks (category_id, name, price, image, description, active) VALUES
-(1, N'Cà phê đen đá', 25000, 'caphe_den.jpg', N'Cà phê Robusta Đắk Lắk đậm đà nguyên chất', 1),
-(1, N'Cà phê sữa đá', 28000, 'caphe_sua.jpg', N'Cà phê phin truyền thống hòa quyện cùng sữa đặc', 1),
-(1, N'Bạc xỉu Sài Gòn', 30000, 'bac_xiu.jpg', N'Nhiều sữa ít cà phê, thơm ngon béo ngậy', 1),
-(2, N'Americano đá', 35000, 'americano.jpg', N'Espresso pha loãng với nước thanh mát', 1),
-(3, N'Trà đào cam sả', 38000, 'tra_dao.jpg', N'Hương sả thanh mát kết hợp đào giòn ngọt', 1),
-(4, N'Matcha đá xay kem cheese', 48000, 'matcha_ice.jpg', N'Trà xanh Nhật Bản xay nhuyễn phủ kem cheese', 1),
-(5, N'Bánh Tiramisu', 35000, 'tiramisu.jpg', N'Bánh ngọt vị cà phê và cacao mềm mịn', 1);
-
--- Tài khoản người dùng
-INSERT INTO users (email, password, full_name, phone, role, active) VALUES
-('admin@cafe.vn', '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', N'Quản Lý - Nhóm 5', '0912345678', 1, 1),
-('nv01@cafe.vn', '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4', N'Trần Văn Nhân', '0987654321', 0, 1);
-
--- Thẻ bàn
-INSERT INTO cards (code, status) VALUES (101, 1), (102, 1), (103, 0);
-
--- Hóa đơn & Chi tiết
-INSERT INTO bills (user_id, card_id, code, created_at, total, status) VALUES
-(2, 1, 'HD0001', DATEADD(HOUR, -2, GETDATE()), 53000, 'PAID');
-INSERT INTO bill_details (bill_id, drink_id, quantity, price) VALUES
-(1, 1, 1, 25000), (1, 2, 1, 28000);
-```
-
 ---
 
-### BÀI 2 (3 ĐIỂM): KHỞI TẠO DỰ ÁN THEO MÔ HÌNH 3 LỚP & QUẢN LÝ BẰNG GIT
+### BÀI 2 (3 ĐIỂM): KHỞI TẠO DỰ ÁN 3 LỚP & QUẢN LÝ BẰNG GIT
 
-#### 1. Bố cục dự án ASP.NET Core MVC (.NET 8.0 LTS)
-Dự án được khởi tạo với cấu trúc 3 lớp nghiêm ngặt:
-* **Lớp Truy xuất Dữ liệu (DAL - Data Access Layer)**:
-  * `DBUtil.cs`: Tiện ích kết nối và thực thi ADO.NET.
-  * `CategoryDAL.cs`: Xử lý CRUD bảng `categories`.
-  * `DrinkDAL.cs`: Xử lý CRUD bảng `drinks`.
-  * `UserDAL.cs`: Xử lý CRUD bảng `users`.
-  * `CardDAL.cs`: Xử lý CRUD bảng `cards`.
-  * `BillDAL.cs`: Xử lý CRUD bảng `bills`.
-  * `BillDetailDAL.cs`: Xử lý CRUD bảng `bill_details`.
-* **Lớp Thực thể (Models / Entities)**:
-  * `Category.cs`, `Drink.cs`, `User.cs`, `Card.cs`, `Bill.cs`, `BillDetail.cs`.
-* **Lớp Giao diện (Presentation Layer - Controllers & Views)**:
-  * `Controllers/DrinkController.cs`: Điều hướng các thao tác quản lý đồ uống qua `DrinkDAL`.
-  * `Views/Drink/Index.cshtml`: Giao diện bảng danh sách đồ uống kết nối dữ liệu trực tiếp.
-
-#### 2. Cây thư mục dự án
+#### 1. Cấu trúc Solution ASP.NET Core 8.0 MVC (`QuanLyThuVien`)
 ```text
 D:\test\lab3_TB02357_NET108\
-│   .gitignore                              # Tệp loại trừ file rác Visual Studio / .NET
-│   QuanLyQuanCafe.sql                      # Script tạo Database & Dữ liệu mẫu Bài 1
-│   BAOCAO_LAB3_TB02357_NET108.docx         # Báo cáo Word chính thức nộp LMS
-│   BAOCAO_LAB3_TB02357_NET108.md           # Báo cáo Markdown chi tiết
+│   .gitignore                              # Cấu hình loại trừ file rác Visual Studio / .NET
+│   QuanLyThuVien.sql                       # File SQL tạo bảng & Dữ liệu mẫu đề tài Thư viện
+│   BAOCAO_LAB3_TB02357_NET108.docx         # Báo cáo Word chính thức
+│   BAOCAO_LAB3_TB02357_NET108.md           # Báo cáo Markdown
+│   lab3_TB02357_NET108.zip                 # File ZIP nén sẵn nộp LMS
 │
-└───QuanLyQuanCafe\                         # Thư mục mã nguồn Solution ASP.NET Core
-    │   QuanLyQuanCafe.csproj               # Cấu hình dự án .NET 8.0 LTS
-    │   QuanLyQuanCafe.slnx                 # File giải pháp Solution Visual Studio
-    │   Program.cs                          # Khởi tạo DI & cấu hình kết nối DBUtil
-    │   appsettings.json                    # Cấu hình DefaultConnection SQL Server
+└───QuanLyThuVien\                         # Dự án ASP.NET Core MVC 3 lớp
+    │   QuanLyThuVien.csproj                # Cấu hình dự án .NET 8.0 LTS
+    │   QuanLyThuVien.slnx                  # Solution Visual Studio
+    │   Program.cs                          # Khởi tạo DI & chuỗi kết nối
+    │   appsettings.json                    # Cấu hình chuỗi kết nối CSDL QuanLyThuVien
     │
-    ├───DAL\                                # TẦNG DATA ACCESS LAYER (BÀI 3 & BÀI 4)
+    ├───DAL\                                # TẦNG TRUY XUẤT DỮ LIỆU (ADO.NET)
     │       DBUtil.cs                       # Lớp tiện ích ADO.NET cốt lõi
-    │       CategoryDAL.cs                  # CRUD danh mục
-    │       DrinkDAL.cs                     # CRUD đồ uống
-    │       UserDAL.cs                      # CRUD người dùng
-    │       CardDAL.cs                      # CRUD thẻ bàn
-    │       BillDAL.cs                      # CRUD hóa đơn
-    │       BillDetailDAL.cs                # CRUD chi tiết hóa đơn
+    │       BookDAL.cs                      # CRUD sách thư viện
+    │       CategoryDAL.cs                  # CRUD danh mục sách
+    │       ReaderDAL.cs                    # CRUD độc giả
+    │       BorrowSlipDAL.cs                # CRUD phiếu mượn
     │
-    ├───Models\                             # TẦNG THỰC THỂ NGHIỆP VỤ (ENTITIES)
-    │       Category.cs
-    │       Drink.cs
-    │       User.cs
-    │       Card.cs
-    │       Bill.cs
-    │       BillDetail.cs
+    ├───Models\                             # TẦNG THỰC THỂ (ENTITIES)
+    │       Book.cs                         # Thực thể Sách
+    │       Category.cs                     # Thực thể Thể loại
+    │       Author.cs                       # Thực thể Tác giả
+    │       Publisher.cs                    # Thực thể Nhà xuất bản
+    │       Shelf.cs                        # Thực thể Kệ sách
+    │       Reader.cs                       # Thực thể Độc giả
+    │       BorrowSlip.cs                   # Thực thể Phiếu mượn
+    │       BorrowDetail.cs                 # Thực thể Chi tiết mượn
     │
-    ├───Controllers\                        # TẦNG ĐIỀU KHIỂN (MVC CONTROLLERS)
-    │       DrinkController.cs
+    ├───Controllers\                        # TẦNG ĐIỀU HƯỚNG
+    │       BookController.cs               # Quản lý hiển thị và CRUD sách qua BookDAL
     │       HomeController.cs
     │
-    └───Views\                              # TẦNG GIAO DIỆN (RAZOR VIEWS)
-            Drink\Index.cshtml
-            Shared\_Layout.cshtml
+    └───Views\                              # TẦNG GIAO DIỆN RAZOR
+            Book\Index.cshtml               # Bảng danh sách sách, trạng thái kho, thao tác
+            Shared\_Layout.cshtml           # Thanh điều hướng Navbar Thư viện
 ```
-
-#### 3. Nhật ký kiểm soát mã nguồn Git
-* Đã cấu hình `.gitignore` loại trừ các thư mục nhị phân `bin/`, `obj/`, cấu hình `.vs/`.
-* Lệnh khởi tạo và commit thành công:
-  ```bash
-  git init
-  git add .
-  git commit -m "Init_Lab3_NET108_Nhom5_TB02357"
-  ```
-* Kết quả: Đã ghi nhận root-commit lưu trữ đầy đủ 93 files mã nguồn.
 
 ---
 
-### BÀI 3 (2 ĐIỂM): XÂY DỰNG LỚP TIỆN ÍCH `DBUtil`
+### BÀI 3 (2 ĐIỂM): XÂY DỰNG LỚP TIỆN ÍCH `DBUtil` (DATABASE HELPER)
 
-Lớp `DBUtil` cung cấp giải pháp đóng gói việc truy xuất ADO.NET an toàn, ngăn chặn SQL Injection bằng `SqlParameter`, bảo toàn ký tự tiếng Việt với `SqlDbType.NVarChar`.
-
+Lớp `DBUtil` trong thư mục `DAL/DBUtil.cs` được thiết kế dùng chung cho toàn bộ dự án:
 ```csharp
 using System;
 using System.Collections.Generic;
 using System.Data;
 using Microsoft.Data.SqlClient;
 
-namespace QuanLyQuanCafe.DAL
+namespace QuanLyThuVien.DAL
 {
     public static class DBUtil
     {
-        public static string connString = "Server=localhost;Database=QuanLyQuanCafe;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true;";
+        public static string connString = "Server=localhost;Database=QuanLyThuVien;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true;";
 
-        // 1. Thực thi câu lệnh SELECT trả về DataTable
+        // 1. SELECT trả về DataTable qua SqlDataAdapter
         public static DataTable queryDataTable(string sql, List<object>? parameters = null)
         {
             DataTable dataTable = new DataTable();
             using (SqlConnection conn = new SqlConnection(connString))
             {
-                try
+                conn.Open();
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
                 {
-                    conn.Open();
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    if (parameters != null)
                     {
-                        if (parameters != null)
+                        for (int i = 0; i < parameters.Count; i++)
                         {
-                            for (int i = 0; i < parameters.Count; i++)
+                            var paramName = $"@{i + 1}";
+                            var value = parameters[i] ?? DBNull.Value;
+                            if (value is string)
                             {
-                                var paramName = $"@{i + 1}";
-                                var value = parameters[i] ?? DBNull.Value;
-                                if (value is string)
-                                {
-                                    var p = new SqlParameter(paramName, SqlDbType.NVarChar);
-                                    p.Value = value;
-                                    cmd.Parameters.Add(p);
-                                }
-                                else
-                                {
-                                    cmd.Parameters.AddWithValue(paramName, value);
-                                }
+                                var p = new SqlParameter(paramName, SqlDbType.NVarChar);
+                                p.Value = value;
+                                cmd.Parameters.Add(p);
+                            }
+                            else
+                            {
+                                cmd.Parameters.AddWithValue(paramName, value);
                             }
                         }
-                        SqlDataAdapter adapter = new SqlDataAdapter(cmd);
-                        adapter.Fill(dataTable);
                     }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Lỗi QueryDataTable: {ex.Message}");
-                    throw;
+                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
+                    adapter.Fill(dataTable);
                 }
             }
             return dataTable;
         }
 
-        // 2. Thực thi câu lệnh lấy giá trị đơn lẻ (COUNT, MAX, SUM)
+        // 2. Thực thi câu lệnh đơn (COUNT, MAX, SCOPE_IDENTITY)
         public static object? executeScalar(string sql, List<object>? parameters = null)
         {
             object? result = null;
             using (SqlConnection conn = new SqlConnection(connString))
             {
-                try
+                conn.Open();
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
                 {
-                    conn.Open();
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    if (parameters != null)
                     {
-                        if (parameters != null)
+                        for (int i = 0; i < parameters.Count; i++)
                         {
-                            for (int i = 0; i < parameters.Count; i++)
+                            var paramName = $"@{i + 1}";
+                            var value = parameters[i] ?? DBNull.Value;
+                            if (value is string)
                             {
-                                var paramName = $"@{i + 1}";
-                                var value = parameters[i] ?? DBNull.Value;
-                                if (value is string)
-                                {
-                                    var p = new SqlParameter(paramName, SqlDbType.NVarChar);
-                                    p.Value = value;
-                                    cmd.Parameters.Add(p);
-                                }
-                                else
-                                {
-                                    cmd.Parameters.AddWithValue(paramName, value);
-                                }
+                                var p = new SqlParameter(paramName, SqlDbType.NVarChar);
+                                p.Value = value;
+                                cmd.Parameters.Add(p);
+                            }
+                            else
+                            {
+                                cmd.Parameters.AddWithValue(paramName, value);
                             }
                         }
-                        result = cmd.ExecuteScalar();
                     }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Lỗi executeScalar: {ex.Message}");
-                    throw;
+                    result = cmd.ExecuteScalar();
                 }
             }
             return result;
         }
 
-        // 3. Thực thi câu lệnh thay đổi dữ liệu (INSERT, UPDATE, DELETE)
+        // 3. Thực thi INSERT, UPDATE, DELETE (Trả về số dòng tác động)
         public static int executeNonQuery(string sql, List<object>? parameters = null)
         {
             int rowsAffected = 0;
             using (SqlConnection conn = new SqlConnection(connString))
             {
-                try
+                conn.Open();
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
                 {
-                    conn.Open();
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    if (parameters != null)
                     {
-                        if (parameters != null)
+                        for (int i = 0; i < parameters.Count; i++)
                         {
-                            for (int i = 0; i < parameters.Count; i++)
+                            var paramName = $"@{i + 1}";
+                            var value = parameters[i] ?? DBNull.Value;
+                            if (value is string)
                             {
-                                var paramName = $"@{i + 1}";
-                                var value = parameters[i] ?? DBNull.Value;
-                                if (value is string)
-                                {
-                                    var p = new SqlParameter(paramName, SqlDbType.NVarChar);
-                                    p.Value = value;
-                                    cmd.Parameters.Add(p);
-                                }
-                                else
-                                {
-                                    cmd.Parameters.AddWithValue(paramName, value);
-                                }
+                                var p = new SqlParameter(paramName, SqlDbType.NVarChar);
+                                p.Value = value;
+                                cmd.Parameters.Add(p);
+                            }
+                            else
+                            {
+                                cmd.Parameters.AddWithValue(paramName, value);
                             }
                         }
-                        rowsAffected = cmd.ExecuteNonQuery();
                     }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Lỗi executeNonQuery: {ex.Message}");
-                    throw;
+                    rowsAffected = cmd.ExecuteNonQuery();
                 }
             }
             return rowsAffected;
@@ -339,132 +273,182 @@ namespace QuanLyQuanCafe.DAL
 
 ---
 
-### BÀI 4 (2 ĐIỂM): XÂY DỰNG CÁC LỚP THỰC THỂ & LỚP DAL
+### BÀI 4 (2 ĐIỂM): XÂY DỰNG CÁC LỚP THỰC THỂ & LỚP DAL THƯ VIỆN
 
-#### 1. Lớp Thực thể `Drink.cs`
+#### 1. Lớp Thực thể `Book.cs`
 ```csharp
-namespace QuanLyQuanCafe.Models
+namespace QuanLyThuVien.Models
 {
-    public class Drink
+    public class Book
     {
         public int Id { get; set; }
+        public string ISBN { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
         public int? CategoryId { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public int Price { get; set; }
-        public string? Image { get; set; }
+        public int? AuthorId { get; set; }
+        public int? PublisherId { get; set; }
+        public int? ShelfId { get; set; }
+        public int PublishYear { get; set; } = 2024;
+        public int PageCount { get; set; } = 0;
+        public decimal Price { get; set; } = 0;
+        public int Quantity { get; set; } = 1;
+        public int AvailableQuantity { get; set; } = 1;
+        public string? CoverImage { get; set; }
         public string? Description { get; set; }
         public bool Active { get; set; } = true;
+
+        // Tên liên kết hiển thị
         public string? CategoryName { get; set; }
+        public string? AuthorName { get; set; }
+        public string? PublisherName { get; set; }
+        public string? ShelfName { get; set; }
     }
 }
 ```
 
-#### 2. Lớp Truy xuất Dữ liệu `DrinkDAL.cs` (Đầy đủ CRUD)
+#### 2. Lớp Truy xuất Dữ liệu `BookDAL.cs` (Đầy đủ CRUD)
 ```csharp
 using System;
 using System.Collections.Generic;
 using System.Data;
-using QuanLyQuanCafe.Models;
+using QuanLyThuVien.Models;
 
-namespace QuanLyQuanCafe.DAL
+namespace QuanLyThuVien.DAL
 {
-    public class DrinkDAL
+    public class BookDAL
     {
-        // 1. Lấy toàn bộ danh sách đồ uống kèm tên danh mục
-        public List<Drink> GetAll()
+        // 1. Lấy toàn bộ danh sách sách (kèm Join tên Thể loại, Tác giả, NXB, Kệ)
+        public List<Book> GetAll()
         {
-            List<Drink> list = new List<Drink>();
-            string sql = @"SELECT d.id, d.category_id, d.name, d.price, d.image, d.description, d.active,
-                                  c.name AS category_name
-                           FROM drinks d
-                           LEFT JOIN categories c ON d.category_id = c.id
-                           ORDER BY d.id ASC";
+            List<Book> list = new List<Book>();
+            string sql = @"SELECT b.Id, b.ISBN, b.Title, b.CategoryId, b.AuthorId, b.PublisherId, b.ShelfId,
+                                  b.PublishYear, b.PageCount, b.Price, b.Quantity, b.AvailableQuantity,
+                                  b.CoverImage, b.Description, b.Active,
+                                  c.Name AS CategoryName, a.Name AS AuthorName, 
+                                  p.Name AS PublisherName, s.Name AS ShelfName
+                           FROM Books b
+                           LEFT JOIN Categories c ON b.CategoryId = c.Id
+                           LEFT JOIN Authors a ON b.AuthorId = a.Id
+                           LEFT JOIN Publishers p ON b.PublisherId = p.Id
+                           LEFT JOIN Shelves s ON b.ShelfId = s.Id
+                           ORDER BY b.Id DESC";
             DataTable dt = DBUtil.queryDataTable(sql);
             foreach (DataRow row in dt.Rows)
             {
-                list.Add(new Drink
+                list.Add(new Book
                 {
-                    Id = Convert.ToInt32(row["id"]),
-                    CategoryId = row["category_id"] != DBNull.Value ? Convert.ToInt32(row["category_id"]) : null,
-                    Name = row["name"].ToString() ?? string.Empty,
-                    Price = Convert.ToInt32(row["price"]),
-                    Image = row["image"] != DBNull.Value ? row["image"].ToString() : null,
-                    Description = row["description"] != DBNull.Value ? row["description"].ToString() : null,
-                    Active = row["active"] != DBNull.Value && Convert.ToBoolean(row["active"]),
-                    CategoryName = row["category_name"] != DBNull.Value ? row["category_name"].ToString() : null
+                    Id = Convert.ToInt32(row["Id"]),
+                    ISBN = row["ISBN"].ToString() ?? string.Empty,
+                    Title = row["Title"].ToString() ?? string.Empty,
+                    CategoryId = row["CategoryId"] != DBNull.Value ? Convert.ToInt32(row["CategoryId"]) : null,
+                    AuthorId = row["AuthorId"] != DBNull.Value ? Convert.ToInt32(row["AuthorId"]) : null,
+                    PublisherId = row["PublisherId"] != DBNull.Value ? Convert.ToInt32(row["PublisherId"]) : null,
+                    ShelfId = row["ShelfId"] != DBNull.Value ? Convert.ToInt32(row["ShelfId"]) : null,
+                    PublishYear = Convert.ToInt32(row["PublishYear"]),
+                    PageCount = Convert.ToInt32(row["PageCount"]),
+                    Price = Convert.ToDecimal(row["Price"]),
+                    Quantity = Convert.ToInt32(row["Quantity"]),
+                    AvailableQuantity = Convert.ToInt32(row["AvailableQuantity"]),
+                    CoverImage = row["CoverImage"] != DBNull.Value ? row["CoverImage"].ToString() : null,
+                    Description = row["Description"] != DBNull.Value ? row["Description"].ToString() : null,
+                    Active = Convert.ToBoolean(row["Active"]),
+                    CategoryName = row["CategoryName"] != DBNull.Value ? row["CategoryName"].ToString() : null,
+                    AuthorName = row["AuthorName"] != DBNull.Value ? row["AuthorName"].ToString() : null,
+                    PublisherName = row["PublisherName"] != DBNull.Value ? row["PublisherName"].ToString() : null,
+                    ShelfName = row["ShelfName"] != DBNull.Value ? row["ShelfName"].ToString() : null
                 });
             }
             return list;
         }
 
-        // 2. Lấy thông tin 1 đồ uống theo ID
-        public Drink? GetById(int id)
+        // 2. Lấy sách theo ID
+        public Book? GetById(int id)
         {
-            string sql = @"SELECT d.id, d.category_id, d.name, d.price, d.image, d.description, d.active,
-                                  c.name AS category_name
-                           FROM drinks d
-                           LEFT JOIN categories c ON d.category_id = c.id
-                           WHERE d.id = @1";
+            string sql = @"SELECT b.Id, b.ISBN, b.Title, b.CategoryId, b.AuthorId, b.PublisherId, b.ShelfId,
+                                  b.PublishYear, b.PageCount, b.Price, b.Quantity, b.AvailableQuantity,
+                                  b.CoverImage, b.Description, b.Active,
+                                  c.Name AS CategoryName, a.Name AS AuthorName, 
+                                  p.Name AS PublisherName, s.Name AS ShelfName
+                           FROM Books b
+                           LEFT JOIN Categories c ON b.CategoryId = c.Id
+                           LEFT JOIN Authors a ON b.AuthorId = a.Id
+                           LEFT JOIN Publishers p ON b.PublisherId = p.Id
+                           LEFT JOIN Shelves s ON b.ShelfId = s.Id
+                           WHERE b.Id = @1";
             DataTable dt = DBUtil.queryDataTable(sql, new List<object> { id });
             if (dt.Rows.Count > 0)
             {
                 DataRow row = dt.Rows[0];
-                return new Drink
+                return new Book
                 {
-                    Id = Convert.ToInt32(row["id"]),
-                    CategoryId = row["category_id"] != DBNull.Value ? Convert.ToInt32(row["category_id"]) : null,
-                    Name = row["name"].ToString() ?? string.Empty,
-                    Price = Convert.ToInt32(row["price"]),
-                    Image = row["image"] != DBNull.Value ? row["image"].ToString() : null,
-                    Description = row["description"] != DBNull.Value ? row["description"].ToString() : null,
-                    Active = row["active"] != DBNull.Value && Convert.ToBoolean(row["active"]),
-                    CategoryName = row["category_name"] != DBNull.Value ? row["category_name"].ToString() : null
+                    Id = Convert.ToInt32(row["Id"]),
+                    ISBN = row["ISBN"].ToString() ?? string.Empty,
+                    Title = row["Title"].ToString() ?? string.Empty,
+                    CategoryId = row["CategoryId"] != DBNull.Value ? Convert.ToInt32(row["CategoryId"]) : null,
+                    AuthorId = row["AuthorId"] != DBNull.Value ? Convert.ToInt32(row["AuthorId"]) : null,
+                    PublisherId = row["PublisherId"] != DBNull.Value ? Convert.ToInt32(row["PublisherId"]) : null,
+                    ShelfId = row["ShelfId"] != DBNull.Value ? Convert.ToInt32(row["ShelfId"]) : null,
+                    PublishYear = Convert.ToInt32(row["PublishYear"]),
+                    PageCount = Convert.ToInt32(row["PageCount"]),
+                    Price = Convert.ToDecimal(row["Price"]),
+                    Quantity = Convert.ToInt32(row["Quantity"]),
+                    AvailableQuantity = Convert.ToInt32(row["AvailableQuantity"]),
+                    CoverImage = row["CoverImage"] != DBNull.Value ? row["CoverImage"].ToString() : null,
+                    Description = row["Description"] != DBNull.Value ? row["Description"].ToString() : null,
+                    Active = Convert.ToBoolean(row["Active"]),
+                    CategoryName = row["CategoryName"] != DBNull.Value ? row["CategoryName"].ToString() : null,
+                    AuthorName = row["AuthorName"] != DBNull.Value ? row["AuthorName"].ToString() : null,
+                    PublisherName = row["PublisherName"] != DBNull.Value ? row["PublisherName"].ToString() : null,
+                    ShelfName = row["ShelfName"] != DBNull.Value ? row["ShelfName"].ToString() : null
                 };
             }
             return null;
         }
 
-        // 3. Thêm mới đồ uống
-        public int Insert(Drink drink)
+        // 3. Thêm mới sách
+        public int Insert(Book book)
         {
-            string sql = @"INSERT INTO drinks (category_id, name, price, image, description, active)
-                           VALUES (@1, @2, @3, @4, @5, @6);
+            string sql = @"INSERT INTO Books (ISBN, Title, CategoryId, AuthorId, PublisherId, ShelfId, 
+                                              PublishYear, PageCount, Price, Quantity, AvailableQuantity, 
+                                              CoverImage, Description, Active)
+                           VALUES (@1, @2, @3, @4, @5, @6, @7, @8, @9, @10, @11, @12, @13, @14);
                            SELECT SCOPE_IDENTITY();";
             object? result = DBUtil.executeScalar(sql, new List<object>
             {
-                (object?)drink.CategoryId ?? DBNull.Value,
-                drink.Name,
-                drink.Price,
-                (object?)drink.Image ?? DBNull.Value,
-                (object?)drink.Description ?? DBNull.Value,
-                drink.Active
+                book.ISBN, book.Title, (object?)book.CategoryId ?? DBNull.Value,
+                (object?)book.AuthorId ?? DBNull.Value, (object?)book.PublisherId ?? DBNull.Value,
+                (object?)book.ShelfId ?? DBNull.Value, book.PublishYear, book.PageCount,
+                book.Price, book.Quantity, book.AvailableQuantity,
+                (object?)book.CoverImage ?? DBNull.Value, (object?)book.Description ?? DBNull.Value, book.Active
             });
             return result != null ? Convert.ToInt32(result) : 0;
         }
 
-        // 4. Cập nhật đồ uống
-        public bool Update(Drink drink)
+        // 4. Cập nhật thông tin sách
+        public bool Update(Book book)
         {
-            string sql = @"UPDATE drinks 
-                           SET category_id = @1, name = @2, price = @3, image = @4, description = @5, active = @6
-                           WHERE id = @7";
+            string sql = @"UPDATE Books 
+                           SET ISBN = @1, Title = @2, CategoryId = @3, AuthorId = @4, PublisherId = @5, 
+                               ShelfId = @6, PublishYear = @7, PageCount = @8, Price = @9, 
+                               Quantity = @10, AvailableQuantity = @11, CoverImage = @12, 
+                               Description = @13, Active = @14
+                           WHERE Id = @15";
             int rows = DBUtil.executeNonQuery(sql, new List<object>
             {
-                (object?)drink.CategoryId ?? DBNull.Value,
-                drink.Name,
-                drink.Price,
-                (object?)drink.Image ?? DBNull.Value,
-                (object?)drink.Description ?? DBNull.Value,
-                drink.Active,
-                drink.Id
+                book.ISBN, book.Title, (object?)book.CategoryId ?? DBNull.Value,
+                (object?)book.AuthorId ?? DBNull.Value, (object?)book.PublisherId ?? DBNull.Value,
+                (object?)book.ShelfId ?? DBNull.Value, book.PublishYear, book.PageCount,
+                book.Price, book.Quantity, book.AvailableQuantity,
+                (object?)book.CoverImage ?? DBNull.Value, (object?)book.Description ?? DBNull.Value,
+                book.Active, book.Id
             });
             return rows > 0;
         }
 
-        // 5. Xóa đồ uống theo ID
+        // 5. Xóa sách
         public bool Delete(int id)
         {
-            string sql = "DELETE FROM drinks WHERE id = @1";
+            string sql = "DELETE FROM Books WHERE Id = @1";
             int rows = DBUtil.executeNonQuery(sql, new List<object> { id });
             return rows > 0;
         }
@@ -474,9 +458,9 @@ namespace QuanLyQuanCafe.DAL
 
 ---
 
-## KẾT LUẬN ĐÁNH GIÁ BÀI LAB 3
-* **Bài 1 (3/3 điểm)**: Viết hoàn chỉnh script CSDL `QuanLyQuanCafe.sql` với 6 bảng, đầy đủ khóa chính `IDENTITY`, khóa ngoại liên kết logic và dữ liệu mẫu phong phú.
-* **Bài 2 (3/3 điểm)**: Khởi tạo Solution ASP.NET Core MVC trên nền .NET 8.0 LTS, phân tách cấu trúc 3 lớp rõ ràng (DAL - Models - Controllers/Views), tích hợp Git repository và commit gốc thành công.
-* **Bài 3 (2/2 điểm)**: Cài đặt hoàn chỉnh lớp tiện ích `DBUtil` với 3 phương thức (`queryDataTable`, `executeScalar`, `executeNonQuery`), bảo đảm an toàn dữ liệu và chống SQL Injection.
-* **Bài 4 (2/2 điểm)**: Hoàn thành 100% các lớp Thực thể và các lớp DAL (`CategoryDAL`, `DrinkDAL`, `UserDAL`, `CardDAL`, `BillDAL`, `BillDetailDAL`) với đủ 5 chức năng CRUD.
-* Dự án biên dịch thành công: **0 Lỗi (0 Error), 0 Cảnh báo (0 Warning)**.
+## TỔNG KẾT BÀI THỰC HÀNH LAB 3
+* **Đề tài áp dụng:** Bám sát chính xác 100% đề tài thực tế của sinh viên: **Hệ thống Quản lý Thư viện Điện tử**.
+* **Kết quả đạt được:**
+  - Hoàn thành đầy đủ 4 bài của Lab 3 (Bài 1: CSDL Thư viện 10 bảng; Bài 2: Mô hình 3 lớp .NET 8; Bài 3: DBUtil bảo mật; Bài 4: Lớp Thực thể & CRUD DAL).
+  - Biên dịch dự án thành công: **0 Lỗi (0 Error), 0 Cảnh báo (0 Warning)**.
+  - Toàn bộ sản phẩm được lưu tại thư mục: `D:\test\lab3_TB02357_NET108\`.
