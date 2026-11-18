@@ -6,8 +6,15 @@ namespace QuanLyThuVien.Controllers
 {
     public class BookController : Controller
     {
-        private readonly BookDAL _bookDAL = new BookDAL();
-        private readonly CategoryDAL _categoryDAL = new CategoryDAL();
+        private readonly BookDAL _bookDAL;
+        private readonly CategoryDAL _categoryDAL;
+
+        // Tiêm phụ thuộc (Dependency Injection) DAL sử dụng EF Core Code First
+        public BookController(BookDAL bookDAL, CategoryDAL categoryDAL)
+        {
+            _bookDAL = bookDAL;
+            _categoryDAL = categoryDAL;
+        }
 
         // GET: /Book/
         public IActionResult Index()
@@ -19,7 +26,7 @@ namespace QuanLyThuVien.Controllers
             }
             catch (Exception ex)
             {
-                ViewBag.Error = $"Lỗi kết nối CSDL Thư viện: {ex.Message}";
+                ViewBag.Error = $"Lỗi kết nối CSDL Thư viện (Hãy chạy lệnh Update-Database để tạo CSDL từ Code First): {ex.Message}";
                 return View(new List<Book>());
             }
         }

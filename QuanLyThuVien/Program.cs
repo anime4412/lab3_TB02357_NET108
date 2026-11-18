@@ -1,13 +1,18 @@
+using Microsoft.EntityFrameworkCore;
 using QuanLyThuVien.DAL;
+using QuanLyThuVien.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Cấu hình chuỗi kết nối cho DBUtil từ appsettings.json
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-if (!string.IsNullOrEmpty(connectionString))
-{
-    DBUtil.connString = connectionString;
-}
+// Cấu hình Entity Framework Core Code First với SQL Server
+builder.Services.AddDbContext<LibraryDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Đăng ký Dependency Injection cho tầng DAL (Scoped theo vòng đời DbContext)
+builder.Services.AddScoped<BookDAL>();
+builder.Services.AddScoped<CategoryDAL>();
+builder.Services.AddScoped<ReaderDAL>();
+builder.Services.AddScoped<BorrowSlipDAL>();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
